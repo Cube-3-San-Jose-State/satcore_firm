@@ -12,6 +12,7 @@ namespace math{
         float w, x, y, z;
 
         inline quarternion(float p_w=0.0, float p_x=0.0, float p_y=0.0, float p_z=0.0) : w(p_w), x(p_x), y(p_y), z(p_z) {}
+        inline quarternion(const math::vec3& p_v) : w(0), x(p_v.x), y(p_v.y), z(p_v.z) {}
 
         inline quarternion operator+ (const quarternion& r) {
             quarternion res;

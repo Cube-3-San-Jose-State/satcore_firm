@@ -110,7 +110,7 @@ class icm20948 {
          */
         inline void sleep() {
             hal::byte pwr_mng_1_content = register_read(icm20948_reg::pwr_mgmt_1);
-            pwr_mng_1_content &= 0b0100'0000;
+            pwr_mng_1_content |= 0b0100'0000;
             register_write(icm20948_reg::pwr_mgmt_1, pwr_mng_1_content);
 
         }
@@ -282,25 +282,32 @@ class icm20948 {
          * @brief Set the full scale of the gyroscope.
          */
         inline void set_gyro_full_scale(gyro_scale p_scale) {
+            constexpr float a = 1.0f;
             switch(p_scale) {
             case gyro_scale::dps_250:
-                m_gyroscope_sensivity = (1 * 250.0f * deg_t_rad / bit15limit);
+                m_gyroscope_sensivity = (a * 250.0f * deg_t_rad / bit15limit);
                 break;
             case gyro_scale::dps_500:
-                m_gyroscope_sensivity = (1 * 500.0f * deg_t_rad / bit15limit);
+                m_gyroscope_sensivity = (a * 500.0f * deg_t_rad / bit15limit);
                 break;
             case gyro_scale::dps_1000:
-                m_gyroscope_sensivity = (1 * 1000.0f * deg_t_rad / bit15limit);
+                m_gyroscope_sensivity = (a * 1000.0f * deg_t_rad / bit15limit);
                 break;
             case gyro_scale::dps_2000:
-                m_gyroscope_sensivity =(1 * 2000.0f * deg_t_rad / bit15limit);
+                m_gyroscope_sensivity =(a * 2000.0f * deg_t_rad / bit15limit);
                 break;
             }
             change_register_bank(icm20948_reg::BANK2);
             hal::byte gyro_config_1_data = register_read(icm20948_reg::gyro_config_1);
+            debug_log<128>("original gyro config: %02x", gyro_config_1_data);
+
             gyro_config_1_data &= 0b1111'1001;
             gyro_config_1_data |= static_cast<hal::byte>(p_scale);
+            debug_log<128>("new gyro config: %02x", gyro_config_1_data);
+
             register_write(icm20948_reg::gyro_config_1, gyro_config_1_data);
+            gyro_config_1_data = register_read(icm20948_reg::gyro_config_1);
+            debug_log<128>("current accel config: %02x", gyro_config_1_data);
             change_register_bank(icm20948_reg::BANK0);
         }
 

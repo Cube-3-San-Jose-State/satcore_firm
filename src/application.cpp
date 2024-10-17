@@ -32,14 +32,14 @@ void application()
 
   icm20948 imu(i2c);
   // hal::print<512>(console, "ICM20948 WHO AM I: %02x\n", imu.who_am_i());
-  imu.reset();
-  hal::delay(clock, 1ms);
+  // imu.reset();
+  hal::delay(clock, 10ms);
   // hal::print<512>(console, "A\n");
 
   // imu.reset_magnetometer();
   // hal::print<512>(console, "B\n");
   mc.log("Configuring Sensors");
-  imu.set_accel_full_scale(icm20948::accel_scale::g_16);
+  imu.set_accel_full_scale(icm20948::accel_scale::g_2);
   // imu.set_accel_full_scale(icm20948::accel_scale::g_16);
   // imu.set_accel_full_scale(icm20948::accel_scale::g_16);
   // imu.set_accel_full_scale(icm20948::accel_scale::g_16);
@@ -54,7 +54,7 @@ void application()
   imu.enable_accel_dlpf();
   // hal::print<512>(console, "E\n");
   imu.enable_gyro_dlpf();
-  imu.set_dlpf_gyro_sample_rate(10);
+  imu.set_dlpf_gyro_sample_rate(100);
   // imu.set_gyro_dlpf_config(1);
   // imu.set_gyro_averaging(icm20948::gyro_averaging::x32);
   // // imu.set_accel_dlpf_config()
@@ -100,16 +100,19 @@ void application()
   // barometer.set_mode(mpl3115::measure_mode::ALTIMETER);
 
   math::quarternion orientation(1.0f);
+  // orientation = math::quarternion::from_euler_ZYX(math::vec3(30.0f * deg_t_rad, 0, 0));
 
 
   std::uint64_t i = 0;
-  float dt = 0.1f;
-  float data_frame_dt = 0.1f;
+  float dt = 0.01f;
+  float data_frame_dt = 1/24.0f;
   bool k = false;
   std::uint64_t dt_ticks = static_cast<std::uint64_t>(dt * clock.frequency());
   std::uint64_t then = clock.uptime();
   std::uint64_t data_frame_ticks = static_cast<std::uint64_t>(data_frame_dt / dt);
   math::vec3 position, velocity;
+
+  float true_dt = dt;
   while(true) {
     // std::uint64_t now = clock.uptime();
     // float dt = (now - then) / clock.frequency();
@@ -119,23 +122,24 @@ void application()
     math::vec3 body_acceleration, body_rates;
     imu.read(body_acceleration, body_rates);
     // body_rates = math::vec3(0*deg_t_rad, 10*deg_t_rad, 10*deg_t_rad);
-
-    math::vec3 br = 0.5 * dt * body_rates;
-    math::quarternion rate_quart;
-    rate_quart.w = -br.x*orientation.x - br.y*orientation.y - br.z*orientation.z;
-    rate_quart.x = br.x*orientation.w + br.z*orientation.y - br.y*orientation.z;
-    rate_quart.y = br.y*orientation.w - br.z*orientation.x - br.x*orientation.z;
-    rate_quart.z = br.z*orientation.w + br.y*orientation.x - br.x*orientation.y;
-
-
+    // body_rates = math::vec3(0,10*deg_t_rad);
     math::vec3 acceleration = body_acceleration;
+
+    // math::quarternion gravity = math::quarternion(0.0f, 0.0f, 0.0f, 1.0f);
+    math::quarternion orientation_conj = math::quarternion::conjugate(orientation);
+    math::quarternion acceleration_q = orientation_conj * math::quarternion(acceleration) * orientation;
+    
+    acceleration.x = acceleration_q.x;
+    acceleration.y = acceleration_q.y;
+    acceleration.z = acceleration_q.z;
+
     acceleration.z -= 1.0f;
     position += (velocity + 0.5 * acceleration * dt) * dt;
     velocity += acceleration * dt;
 
-    // math::quarternion rate_quart(1.0f, body_rates.x * 0.5 * dt, body_rates.y * 0.5 * dt, body_rates.z * 0.5 * dt);
-    // orientation = rate_quart * orientation;
-    orientation = orientation + rate_quart;
+    math::vec3 br = 0.5 * dt * body_rates;
+    math::quarternion rate_quart(1.0f, br.x, br.y, br.z);
+    orientation = rate_quart * orientation;
     orientation.norm();
 
 
@@ -158,7 +162,8 @@ void application()
       data.acceleration = acceleration;
       data.velocity = velocity;
       data.position = position;
-
+      // data.dt = (clock.uptime() - then) * clock.frequency();
+      data.dt = true_dt;
       mc.send_data_frame(data);
       // mc.log("Data frame sent");
 
@@ -183,6 +188,8 @@ void application()
 
     std::uint64_t now = clock.uptime();
     do { now = clock.uptime(); }while((now - then) < dt_ticks); // Spinlock until dt seconds have passed;
+    then = clock.uptime();
+    true_dt = (now - then) * clock.frequency();
   }
 
   // neo_m9n gps(console);

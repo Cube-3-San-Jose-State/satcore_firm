@@ -15,6 +15,8 @@ struct mission_control_data_frame {
 
     math::quarternion orientation;
     math::vec3 body_angular_rates;
+
+    float dt;
 };
 
 struct mission_control {
@@ -104,6 +106,7 @@ struct mission_control {
         send_v(p_frame.body_acceleration);  // 41 (12)
         send_q(p_frame.orientation);        // 53 (16)
         send_v(p_frame.body_angular_rates); // 69 (12)
+        send(p_frame.dt); // 81 (4)
         end_frame();
         flush_transmit_buffer();
     }
