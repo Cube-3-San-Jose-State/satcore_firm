@@ -26,7 +26,7 @@ Follow these instructions to get started with building and testing the firmware 
 - LIBHAL
 
 🤝 Contributing
-We welcome contributions from all members of the SJSU's all engineering disciplines and beyond! Whether you're a student interested in embedded systems, automation, harware, electrical, or satellite technology, there's always room to get involved.
+We welcome contributions from all members of SJSU's engineering disciplines and beyond! Whether you're a student interested in embedded systems, automation, harware, electrical, or satellite technology, there's always room to get involved.
 
 How to Contribute:
 Fork this repository.
