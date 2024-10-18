@@ -1,6 +1,6 @@
 # SJSU Cube3 Satellite Club - Firmware Repository
 
-Welcome to the official firmware repository for the **San Jose State University Cube Satellite Club**. Repo is dedicated to the firmware for CubeSats, designed to teach students about software, automation, embedded systems, and controls.
+Welcome to the official firmware repository for the **SJSU Cube3 Satellite Club** called SAT-CORE. Repo is dedicated to the firmware for CubeSats, designed to teach students about software, automation, embedded systems, and controls.
 
 ### Key Features:
 - **Embedded Systems**: Firmware for microcontrollers and onboard sensors.
