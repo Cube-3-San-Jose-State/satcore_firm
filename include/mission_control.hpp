@@ -1,5 +1,7 @@
 #pragma once
 
+#define CONSOLE_LOG_ONLY_MODE
+
 #include <libhal/serial.hpp>
 #include <array>
 #include <math.hpp>
@@ -54,7 +56,7 @@ struct mission_control {
         queue_transmit_byte(START_OF_FRAME);
     }
 
-    void send_byte(std::uint8_t b) {
+    inline void send_byte(std::uint8_t b) {
         switch(b) {
             case START_OF_FRAME:
             case END_OF_FRAME:
@@ -83,12 +85,12 @@ struct mission_control {
         }
     }
 
-    void send_v(math::vec3 x) {
+    inline void send_v(math::vec3 x) {
         send(x.x);
         send(x.y);
         send(x.z);
     }
-    void send_q(math::quarternion x) {
+    inline void send_q(math::quarternion x) {
         send(x.x);
         send(x.y);
         send(x.z);
@@ -96,7 +98,10 @@ struct mission_control {
     }
 
 
-    void send_data_frame(const mission_control_data_frame& p_frame) {
+    inline void send_data_frame(const mission_control_data_frame& p_frame) {
+        #ifdef CONSOLE_LOG_ONLY_MODE
+        return;
+        #endif
         start_frame();
         send('D'); // 0
         send(p_frame.time);                 // 1 (4)
@@ -111,27 +116,74 @@ struct mission_control {
         flush_transmit_buffer();
     }
 
-    void log(std::span<const char> p_data) {
-        start_frame();
-        send('L');
-        for(const auto& byte : p_data) {
-            send(byte);
-        }
-        end_frame();
-        flush_transmit_buffer();
+    inline void log(std::span<const char> p_data) {
+        log_with_priority('L', p_data);
     }
     template<std::size_t N, class ...T>
     void log(const char * fmt, const T&... x) {
-        start_frame();
-        send('L');
         char buf[N];
         int n = std::snprintf(buf, N, fmt, x...);
         for(int i = 0; i < n; i ++) {
             send(buf[i]);
         }
-        // for(const auto& byte : p_data) {
-        //     send(byte);
-        // }
+        log_with_priority('L', std::span<const char>(buf, n));
+    }
+
+    inline void info(std::span<const char> p_data) {
+        log_with_priority('L', p_data);
+    }
+
+    template<std::size_t N, class ...T>
+    void info(const char * fmt, const T&... x) {
+        char buf[N];
+        int n = std::snprintf(buf, N, fmt, x...);
+        log_with_priority('L', std::span<const char>(buf, n));
+    }
+
+    inline void debug(std::span<const char> p_data) {
+        log_with_priority('L', p_data);
+    }
+
+    template<std::size_t N, class ...T>
+    void debug(const char * fmt, const T&... x) {
+        char buf[N];
+        int n = std::snprintf(buf, N, fmt, x...);
+        log_with_priority('L', std::span<const char>(buf, n));
+    }
+
+    inline void warn(std::span<const char> p_data) {
+        log_with_priority('L', p_data);
+    }
+
+    template<std::size_t N, class ...T>
+    void warn(const char * fmt, const T&... x) {
+        char buf[N];
+        int n = std::snprintf(buf, N, fmt, x...);
+        log_with_priority('L', std::span<const char>(buf, n));
+    }
+
+    inline void critical(std::span<const char> p_data) {
+        log_with_priority('L', p_data);
+    }
+
+    template<std::size_t N, class ...T>
+    void critical(const char * fmt, const T&... x) {
+        char buf[N];
+        int n = std::snprintf(buf, N, fmt, x...);
+        log_with_priority('L', std::span<const char>(buf, n));
+    }
+
+    inline void log_with_priority(char p_prior, std::span<const char> p_msg) {
+        start_frame();
+        #ifndef CONSOLE_LOG_ONLY_MODE
+        send(p_prior);
+        #endif
+        for(const auto& byte : p_msg) {
+            send(byte);
+        }
+        #ifdef CONSOLE_LOG_ONLY_MODE
+        send('\n');
+        #endif
         end_frame();
         flush_transmit_buffer();
     }
