@@ -8,6 +8,6 @@
 
 
 extern resource_list hardware;
-void application();
+extern io_list io;
 
-void bus_scan(hal::steady_clock& clock, hal::serial& console, hal::i2c& bus);
+void application();
