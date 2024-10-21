@@ -32,9 +32,9 @@ resource_list initialize_platform()
   auto cpu_frequency = hal::lpc40::get_frequency(hal::lpc40::peripheral::cpu);
   static hal::cortex_m::dwt_counter counter(cpu_frequency);
 
-  static std::array<hal::byte, 64> receive_buffer{};
+  static std::array<hal::byte, 64> receive_buffer_uart0{};
   static hal::lpc40::uart uart0(0,
-                                receive_buffer,
+                                receive_buffer_uart0,
                                 hal::serial::settings{
                                   .baud_rate = 115200,
                                 });
@@ -45,11 +45,20 @@ resource_list initialize_platform()
       .clock_rate = 100.0_kHz,
   });
 
+
+  // static std::array<hal::byte, 64> receive_buffer_uart1{};
+  // static hal::lpc40::uart uart1(1,
+  //                               receive_buffer_uart1,
+  //                               hal::serial::settings{
+  //                                 .baud_rate = 115200,
+  //                               });
+
   return {
     .reset = +[]() { hal::cortex_m::reset(); },
     .status_led = &led,
     .console = &uart0,
     .clock = &counter,
-    .i2c= &i2c2
+    .gps_serial = &uart0,
+    .i2c= &i2c2,
   };
 }
