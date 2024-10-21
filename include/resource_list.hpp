@@ -23,6 +23,10 @@
 #include <libhal/steady_clock.hpp>
 #include <libhal/i2c.hpp>
 
+#include "mission_control.hpp"
+#include "icm20948/icm20948.hpp"
+#include "mpl3115/mpl3115.hpp"
+#include "neo-m9n.hpp"
 struct resource_list
 {
     hal::callback<void()> reset;
@@ -30,9 +34,22 @@ struct resource_list
     std::optional<hal::serial*> console;
     std::optional<hal::steady_clock*> clock;
 
+    std::optional<hal::serial*> gps_serial;
+
+
     hal::i2c* i2c;
 };
 
+struct io_list {
+    resource_list* resources;
+    mission_control* mc;
+    icm20948* imu; 
+    mpl3115* baro;
+    neo_m9n* gps;
+};
+
 resource_list initialize_platform();
+
+io_list initialize_sensors(resource_list& p_list);
 
 // resource_list resources;
