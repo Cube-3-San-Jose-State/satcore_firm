@@ -20,17 +20,22 @@
 #include "resource_list.hpp"
 
 #include "application.hpp"
+#include "configure.hpp"
 
 // This is only global so that the terminate handler can use the hardware
 // provided.
 
 resource_list hardware;
+io_list io;
 
 [[noreturn]] void terminate_handler() noexcept
 {
   bool valid = hardware.status_led && hardware.clock;
   auto& console = *hardware.console.value();
-  hal::print(console, "CRASHED\n");
+  if (io.mc) {
+      io.mc->critical(
+                 "Critical error occured");
+  }
 
   if (not valid) {
     // spin here until debugger is connected
@@ -74,20 +79,23 @@ int main()
 
   hal::set_terminate(terminate_handler);
 
+
+
   try {
+    io = initialize_sensors(hardware);
+    configure();
+
     application();
   } catch (std::bad_optional_access const& e) {
-    if (hardware.console) {
-      hal::print(*hardware.console.value(),
-                 "A resource required by the application was not available!\n"
-                 "Calling terminate!\n");
+    if (io.mc) {
+      io.mc->critical(
+                 "A resource required by the application was not available!");
     }
-  } 
-  hal::print(*hardware.console.value(),
-              "efwaljl;kdsajfkldasjfkl;dsjafkl;dsaj!\n"
-              "Calling terminate!\n");
-   // Allow any other exceptions to terminate the application
-
+  }
+  if (io.mc) {
+      io.mc->critical(
+                 "Critical error occured");
+  }
   // Terminate if the code reaches this point.
   std::terminate();
 }
