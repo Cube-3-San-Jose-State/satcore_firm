@@ -4,6 +4,7 @@
 
 #include <libhal/i2c.hpp>
 #include <libhal-util/i2c.hpp>
+#include <libhal-util/steady_clock.hpp>
 #include <span>
 #include <array>
 #include "icm20948/icm20948_reg.hpp"
@@ -299,16 +300,9 @@ class icm20948 {
             }
             change_register_bank(icm20948_reg::BANK2);
             hal::byte gyro_config_1_data = register_read(icm20948_reg::gyro_config_1);
-            debug_log<128>("original gyro config: %02x", gyro_config_1_data);
-
             gyro_config_1_data &= 0b1111'1001;
             gyro_config_1_data |= static_cast<hal::byte>(p_scale);
-            debug_log<128>("new gyro config: %02x", gyro_config_1_data);
-
             register_write(icm20948_reg::gyro_config_1, gyro_config_1_data);
-            gyro_config_1_data = register_read(icm20948_reg::gyro_config_1);
-            debug_log<128>("current accel config: %02x", gyro_config_1_data);
-            change_register_bank(icm20948_reg::BANK0);
         }
 
         /**
@@ -403,14 +397,9 @@ class icm20948 {
             }
             change_register_bank(icm20948_reg::BANK2);
             hal::byte accel_config_data = register_read(icm20948_reg::accel_config);
-            debug_log<128>("original accel config: %02x", accel_config_data);
             accel_config_data &= 0b1111'1001;
             accel_config_data |= static_cast<hal::byte>(p_scale);
-            debug_log<128>("new accel config: %02x", accel_config_data);
             register_write(icm20948_reg::accel_config, accel_config_data);
-            accel_config_data = register_read(icm20948_reg::accel_config);
-            debug_log<128>("current accel config: %02x", accel_config_data);
-            change_register_bank(icm20948_reg::BANK0);
         }
 
         /**
