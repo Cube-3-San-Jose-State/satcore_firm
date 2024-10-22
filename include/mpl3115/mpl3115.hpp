@@ -72,14 +72,14 @@ class mpl3115 {
          * @return status 
          */
         inline status get_data_ready_status() {
-            hal::byte status_data =register_read(mpl3115_reg::DR_STATUS);
+            hal::byte status_data = register_read(mpl3115_reg::STATUS);
             status out;
-            out.pressure_temperature_overwritten = status_data & 0b1000'0000;
-            out.pressure_overwritten = status_data & 0b0100'0000;
-            out.temperature_overwritten = status_data & 0b0010'0000;
-            out.pressure_temperature_data_ready = status_data & 0b0000'1000;
-            out.pressure_data_ready = status_data & 0b0000'0100;
-            out.temperature_data_ready = status_data & 0b0000'0010;
+            out.pressure_temperature_overwritten = (status_data & 0b1000'0000) >> 7;
+            out.pressure_overwritten = (status_data & 0b0100'0000) >> 6;
+            out.temperature_overwritten = (status_data & 0b0010'0000) >> 5;
+            out.pressure_temperature_data_ready = (status_data & 0b0000'1000) >> 3;
+            out.pressure_data_ready = (status_data & 0b0000'0100) >> 2;
+            out.temperature_data_ready = (status_data & 0b0000'0010) >> 1;
             return out;
         }
 
@@ -91,9 +91,9 @@ class mpl3115 {
          * @return Height in meters above reference height.
          */
         inline float height() { 
-            std::array<hal::byte, 3> raw_data;
-            register_read(mpl3115_reg::OUT_P_MSB, raw_data);
-            return static_cast<float>(combine_signed(raw_data[0], raw_data[1], raw_data[2] >> 4)) / 8.0f;
+            std::array<hal::byte, 6> raw_data;
+            register_read(mpl3115_reg::STATUS, raw_data);
+            return static_cast<float>(combine_signed(raw_data[1], raw_data[2], raw_data[3])) / 16.0f;
          }
 
 
@@ -123,7 +123,7 @@ class mpl3115 {
         inline void read(float& p_pressure, float& p_temperature) {
             std::array<hal::byte, 5> raw_data;
             register_read(mpl3115_reg::OUT_P_MSB, raw_data);
-            p_pressure = static_cast<float>(combine_unsigned(raw_data[0], raw_data[1], raw_data[2] >> 4));
+            p_pressure = static_cast<float>(combine_unsigned(raw_data[0], raw_data[1], raw_data[2] >> 4)) / 8.0f;
             p_temperature = static_cast<float>(combine_signed(raw_data[3], raw_data[4] >> 4));
         }
 
@@ -149,7 +149,7 @@ class mpl3115 {
         inline float delta_pressure() {
             std::array<hal::byte, 3> raw_data;
             register_read(mpl3115_reg::OUT_P_DELTA_MSB, raw_data);
-            return static_cast<float>(combine_unsigned(raw_data[0], raw_data[1], raw_data[2] >> 4));
+            return static_cast<float>(combine_unsigned(raw_data[0], raw_data[1], raw_data[2] >> 4)) / 8.0f;
         }
 
         /**
@@ -167,13 +167,13 @@ class mpl3115 {
         inline void read_delta_with_pressure(float& p_delta_pressure, float& p_delta_temperature) {
             std::array<hal::byte, 5> raw_data;
             register_read(mpl3115_reg::OUT_P_DELTA_MSB, raw_data);
-            p_delta_pressure = static_cast<float>(combine_unsigned(raw_data[0], raw_data[1], raw_data[2] >> 4));
+            p_delta_pressure = static_cast<float>(combine_unsigned(raw_data[0], raw_data[1], raw_data[2] >> 4)) / 8.0f;
             p_delta_temperature = static_cast<float>(combine_signed(raw_data[3], raw_data[4] >> 4));
         }
         inline void read_delta_with_height(float& p_delta_height, float& p_delta_temperature) {
             std::array<hal::byte, 5> raw_data;
             register_read(mpl3115_reg::OUT_P_DELTA_MSB, raw_data);
-            p_delta_height = static_cast<float>(combine_signed(raw_data[0], raw_data[1], raw_data[2] >> 4)) / 8.0f;
+            p_delta_height = static_cast<float>(combine_signed(raw_data[0], raw_data[1], raw_data[2] >> 4)) / 16.0f;
             p_delta_temperature = static_cast<float>(combine_signed(raw_data[3], raw_data[4] >> 4));
         }
 
@@ -221,6 +221,18 @@ class mpl3115 {
             hal::byte value = register_read(mpl3115_reg::CTRL_REG1);
             value |= 1;
             register_write(mpl3115_reg::CTRL_REG1, value);
+            value = register_read(mpl3115_reg::SYSMOD);
+            value |= 1;
+            register_write(mpl3115_reg::SYSMOD, value);
+        }
+        /**
+         * @brief Get one sensor reading
+         * 
+         */
+        inline void one_shot() {
+            hal::byte value = register_read(mpl3115_reg::CTRL_REG1);
+            value |= 0b10;
+            register_write(mpl3115_reg::CTRL_REG1, value);
         }
 
         /**
@@ -232,6 +244,15 @@ class mpl3115 {
             std::uint16_t data = static_cast<std::uint16_t>(p_pressure / 2.0f);
             register_write(mpl3115_reg::BAR_IN_MSB, data >> 8);
             register_write(mpl3115_reg::BAR_IN_LSB, data & 0xff);
+        }
+
+
+        /**
+         * @brief Enable all status flags on the sensor
+         * 
+         */
+        inline void enable_all_data_ready_flags() {
+            register_write(mpl3115_reg::PT_DATA_CFG, 0b0000'0111);
         }
 
         /**
@@ -302,7 +323,7 @@ class mpl3115 {
         float m_sample_period = 0.006f;
 
 
-
+        public:
         // float m_accelerometer_sensitivity = 1.0f;
         // float m_gyroscope_sensivity = 1.0f;
         // float m_magnetometer_sensivity = 4912.0f / bit15limit;
@@ -331,8 +352,16 @@ class mpl3115 {
          * @param low  
          * @return std::uint32_t 
          */
-        inline std::uint32_t combine_signed(hal::byte high, hal::byte mid, hal::byte low) {
-            return (static_cast<std::uint32_t>(high << 24) >> 12) | (static_cast<std::uint32_t>(mid) << 4) | static_cast<std::uint32_t>(low);
+        inline std::int32_t combine_signed(hal::byte high, hal::byte mid, hal::byte low) {
+            if(high & 0b10000000) {
+                high = ~high;
+                mid = ~mid;
+                low = ~low;
+                low++;
+                return -((static_cast<std::int32_t>(high << 12)) | (static_cast<std::int32_t>(mid) << 4) | (static_cast<std::int32_t>(low) >> 4));
+            }
+            return ((static_cast<std::int32_t>(high << 12)) | (static_cast<std::int32_t>(mid) << 4) | (static_cast<std::int32_t>(low) >> 4));
+
         }
         
         
@@ -357,7 +386,7 @@ class mpl3115 {
         // inline std::uint16_t combine_unsigned(hal::byte high, hal::byte low) {
         //     return (static_cast<std::uint16_t>(high) << 8) | static_cast<std::uint16_t>(low);
         // }
-
+        // public: 
         inline void register_write(hal::byte p_reg_addr, hal::byte p_data) {
             std::array<hal::byte, 2> transferred = { p_reg_addr, p_data };
             hal::write(m_bus, m_i2c_addr, transferred);

@@ -8,7 +8,7 @@
 
 
 namespace mpl3115_reg {
-static constexpr hal::byte DEFAULT_I2C_ADDR = 0xC0;
+static constexpr hal::byte DEFAULT_I2C_ADDR = 0x60;
 
 static constexpr hal::byte STATUS = 0x00;
 static constexpr hal::byte OUT_P_MSB = 0x01;
