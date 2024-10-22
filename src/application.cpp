@@ -15,6 +15,16 @@
 
 mission_control* debug;
 
+void bus_scan(mission_control& mc, hal::i2c& i2c) {
+  mc.info("Probing bus");
+  for(int i = 0; i < 128; i ++) {
+    if(hal::probe(i2c, i)) {
+      mc.info<128>("0x%02x found", i);
+    }
+  }
+  mc.info("Finished probe");
+}
+
 void application()
 {
   using namespace std::chrono_literals;
@@ -26,6 +36,8 @@ void application()
 
   mission_control mc(console);
   debug = &mc;
+
+  bus_scan(mc, i2c);
 
   icm20948 imu(i2c);
   hal::delay(clock, 10ms);
