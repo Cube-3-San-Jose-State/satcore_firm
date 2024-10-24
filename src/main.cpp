@@ -82,8 +82,8 @@ int main()
 
 
   try {
-    io = initialize_sensors(hardware);
-    configure();
+    // io = initialize_sensors(hardware);
+    // configure();
 
     application();
   } catch (std::bad_optional_access const& e) {

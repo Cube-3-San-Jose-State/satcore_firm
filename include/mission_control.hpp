@@ -119,6 +119,9 @@ struct mission_control {
     inline void log(std::span<const char> p_data) {
         log_with_priority('L', p_data);
     }
+    inline void log(std::span<const hal::byte> p_data) {
+        log_with_priority('L', p_data);
+    }
     template<std::size_t N, class ...T>
     void log(const char * fmt, const T&... x) {
         char buf[N];
@@ -187,8 +190,21 @@ struct mission_control {
         end_frame();
         flush_transmit_buffer();
     }
+    inline void log_with_priority(char p_prior, std::span<const hal::byte> p_msg) {
+        start_frame();
+        #ifndef CONSOLE_LOG_ONLY_MODE
+        send(p_prior);
+        #endif
+        for(const auto& byte : p_msg) {
+            send(byte);
+        }
+        #ifdef CONSOLE_LOG_ONLY_MODE
+        send('\n');
+        #endif
+        end_frame();
+        flush_transmit_buffer();
+    }
 };
-
 // struct mission_control_log_frame {
 //     std::int64_t time;
 

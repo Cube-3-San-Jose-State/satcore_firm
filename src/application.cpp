@@ -32,7 +32,9 @@ void application()
   auto& led = *hardware.status_led.value();
   auto& clock = *hardware.clock.value();
   auto& console = *hardware.console.value();
+  auto& gps_console = *hardware.gps_serial.value();
   auto& i2c = *hardware.i2c;
+
 
   mission_control mc(console);
   debug = &mc;
@@ -55,6 +57,11 @@ void application()
   mc.log("Calibrating");
   imu.calibrate_accel_gyro(clock, 1000, 1ms);
   mc.log("Finished Calibration");
+
+
+  // neo_m9n gps(console);
+  // gps.update();
+
 
   // mpl3115 barometer(i2c);
   // hal::print<512>(console, "MPL3115 WHO AM I: %02x\n", barometer.who_am_i());
@@ -111,6 +118,13 @@ void application()
       data.dt = true_dt;
       mc.send_data_frame(data);
       
+      std::array<hal::byte, 1024> gps_s;
+      auto res = gps_console.read(gps_s);
+      if(res.data.size() > 0) {
+        mc.log("GPS RCV");
+        mc.log(res.data);
+      }
+
       led.level(k);
       k = !k;
     }
