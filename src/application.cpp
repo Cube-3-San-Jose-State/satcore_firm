@@ -39,6 +39,8 @@ void application()
 
   bus_scan(mc, i2c);
 
+  while(true);
+
   icm20948 imu(i2c);
   hal::delay(clock, 10ms);
   mc.log("Configuring Sensors");
